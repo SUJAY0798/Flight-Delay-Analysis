@@ -9,5 +9,6 @@ Moreover, taxi-out does not seem to have significant impact on the departure del
 Recommendations:
 First, I would like to recommend the organization that they evenly distribute the departure flights. These would reduce the traffic at the airport and allow flights to smoothly taxi to the runway avoiding departure delays. These can be supported by the analysis done in question 6.
 Second, I would like to make my recommendation to United and Frontier airlines. These airlines should take more efforts in the operations and services at the airport as boarding the plane on the schedule time is also important factor, crew and technical services can do better and so on. These help them gain more customer satisfaction and eventually increase their profits. The findings can be seen in questions 2. 
+
 Last, I would like to recommend the authorities at the Los Angeles and San Francisco to improve the operations and services as it might be that due to poor air traffic control the flights have to wait to get the clearance to land resulting in delayed arrival time. Other factors might be improper taxi-in management, flight kept waiting for too long for clearance and so on. 
 
