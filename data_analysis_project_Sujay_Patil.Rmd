@@ -1,0 +1,410 @@
+---
+title: "Data Analysis Project"
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, 
+                      message = FALSE, 
+                      warning = FALSE,
+                      comment = "")
+```
+
+
+
+# Introduction
+
+In this project we will be working with a dataset of all domestic outbound flights from Dulles International Airport in 2016.
+
+Airports depend on accurate flight departure and arrival estimates to maintain operations, profitability, customer satisfaction, and compliance with state and federal laws. Flight performance, including departure and arrival delays must be monitored, submitted to the Federal Aviation Agency (FAA) on a regular basis, and minimized to maintain airport operations. **The FAA considered a flight to be delayed if it has an arrival delay of at least 15 minutes**.
+
+The executives at Dulles International Airport have hired you as a Data Science consultant to perform an exploratory data analysis on all domestic flights from 2016 and produce an executive summary of your key insights and recommendations to the executive team.
+
+Before you begin, take a moment to read through the following airline flight terminology to familiarize yourself with the industry: [Airline Flight Terms](https://www.myairlineflight.com)
+
+
+
+## Dulles Flights Data
+
+The `flights_df` data frame is loaded below and consists of 33,433 flights from IAD (Dulles International) in 2016. The rows in this data frame represent a single flight with all of the associated features that are displayed in the table below.
+
+**Note**: If you have not installed the `tidyverse` package, please do so by going to the `Packages` tab in the lower right section of RStudio, select the `Install` button and type `tidyverse` into the prompt. If you cannot load the data, then try downloading the latest version of R (at least 4.0). The `readRDS()` function has different behavior in older versions of `R` and may cause loading issues.
+
+
+
+```{r}
+
+library(tidyverse)
+
+flights_df <- readRDS(url('https://gmubusinessanalytics.netlify.app/data/dulles_flights.rds'))
+
+```
+
+
+### Raw Data
+
+```{r}
+
+flights_df
+
+```
+
+
+# Exploratory Data Analysis
+
+
+Executives at this company have hired you as a data science consultant to evaluate their flight data and make recommendations on flight operations and strategies for minimizing flight delays.
+
+You must think of **at least 8 relevant questions** that will provide evidence for your recommendations.
+
+The goal of your analysis should be discovering which variables drive the differences between flights that are early/on-time vs. flights that are delayed.
+
+Some of the many questions you can explore include:
+
+-   Are flight delays affected by taxi-out time? Do certain airlines or time of 
+    year lead to greater taxi out times (i.e. traffic jams on the runways)?
+
+-   Are certain times of the day or year problematic?
+
+-   Are certain destination or airlines prone to delays?
+
+
+You must answer each question and provide supporting data summaries with either a summary data frame (using `dplyr`/`tidyr`) or a plot (using `ggplot`) or both.
+
+In total, you must have a minimum of 5 plots and 4 summary data frames for the exploratory data analysis section. Among the plots you produce, you must have at least 4 different types (ex. box plot, bar chart,
+histogram, heat map, etc...)
+
+Each question must be answered with supporting evidence from your tables and plots.
+
+
+## Question 1
+
+
+
+**Question**: Did late departure from Dulles airport resulted in late arrival at destination airport ?
+
+
+
+**Answer**: According to the observations, 20% of the flights which were departed late arrived late at the destination airport. Also, 20% of the fights that departed late but arrived on time at the destination. And 54% of the flights were Early or Ontime. Remaining are the flights which departed on time but arrived late at the destination airport. 
+Also we can see from the scatter plot that arrival delay and departure delay show a linear relationship between them which indicate that they are highly corelated. 
+
+
+
+To add additional R code chunks for your work, select `Insert` then `R` from the top of this notebook file.
+
+```{r}
+flights_df1 <- mutate(flights_df,delays = case_when(
+      flights_df$dep_delay >0 & flights_df$arrival_delay > 15 ~ "Yes",
+      flights_df$dep_delay >=0 & flights_df$arrival_delay <= 15 ~ "No",
+      flights_df$dep_delay <=0 & flights_df$arrival_delay <= 0 ~ "On Time/Early",
+      flights_df$dep_delay <=0 & flights_df$arrival_delay > 0 ~ "Late"
+))
+flights_df1
+
+flights_df1%>% ggplot(aes(x=flights_df1$delays,fill=delays)) +
+              geom_bar()+
+              labs(x="Flights",title="Flights Distribution")
+
+#Scatter Plot for relationship between dep_delay and arrival_delay.
+flights_df%>% filter(arrival_delay > 15 , dep_delay > 0) %>%
+  ggplot(aes(x=dep_delay,y=arrival_delay,color = "Blue")) +
+  geom_point()+
+  labs(x="Departure Delay",y="Arrival Delay",title = "Relation between Departure Delay and Arrival Delay")+
+  theme(legend.position = "none")
+          
+
+```
+
+
+
+## Question 2 
+
+
+
+**Question**:  Are their certain airlines that are prone to delays?
+
+
+
+**Answer**: It can be observed that United airlines had the most delayed flights but arrival delay rate is around 15% because United airlines has more number of operating flights. But actually Frontier is the airline which has the most delayed flights with the delay rate of 27%. Whereas Alaska is considered to be most efficient with delay rate of 11% which is the least among all the airlines.
+
+
+
+```{r}
+airlines_delays <- flights_df%>%filter(arrival_delay >= 15) %>%
+                  group_by(airline)  %>%
+                  summarise(Flights_delayed = n())
+
+
+total_flights_df <- flights_df %>%
+                  group_by(airline)  %>%
+                  summarise(total_flights = n())
+
+
+delay_rate = (airlines_delays$Flights_delayed/total_flights_df$total_flights)*100
+delay_rate_df = mutate(airlines_delays,total_flights = total_flights_df$total_flights,delay_rate)
+delay_rate_df
+
+ggplot(delay_rate_df,aes(y=airline,x=delay_rate,fill=airline)) +
+              geom_col()+
+              labs(x="Delay Rate",y="Airlines",title="Airline Delay Rate")
+```
+
+
+
+## Question 3
+
+
+
+**Question**: Are there any months problematic during the year?
+
+
+
+**Answer**: We can observe from the results that June and July seems to have more delay flights over the year. This is also because they are more flights that are delayed during these 2 months. The average delay time is also large for these 2 months with a delay of around 88 and 84 minutes respectively. 
+
+
+
+
+```{r}
+airlines_delays_month <- flights_df%>%filter(arrival_delay >= 15) %>%
+                  group_by(month)  %>%
+                  summarise(flights_delayed = n(),
+                            avg_delay = mean(arrival_delay))
+airlines_delays_month
+
+ggplot(airlines_delays_month,aes(x=month ,y = avg_delay,group = 1))+
+  geom_line()+
+  geom_point() +
+  labs(x="Months",y="Delay count")
+
+```
+
+
+
+
+## Question 4
+
+
+
+**Question**:Are their any specific day of the week or year prone to more delays ?
+
+
+
+**Answer**: Thursday seem to have more number of flights delayed with 893 flights in total. But when we observe the average delay time then Saturday has the largest mean with average delay as 80 minutes. Whereas Saturday has the less number of flights delayed but then the delay time is more which is affecting the mean. 
+
+
+
+
+```{r}
+
+flight_delay <- flights_df%>% filter(arrival_delay >= 15)
+ggplot(flight_delay,aes(x = weekday,y = arrival_delay ))+
+  geom_boxplot()
+
+airlines_delays_weekday <- flights_df%>%filter(arrival_delay >= 15) %>%
+                  group_by(weekday)  %>%
+                  arrange(desc(arrival_delay)) %>%
+                  summarise(avg_delay = mean(arrival_delay))
+airlines_delays_weekday
+
+airlines_delays_number <- flights_df%>%filter(arrival_delay >= 15) %>%
+                  group_by(weekday)  %>%
+                  summarise(Flights_Delayed = n())
+airlines_delays_number
+
+ggplot(airlines_delays_number,aes(x = weekday,y=Flights_Delayed))+
+  geom_col()
+
+
+
+```
+
+
+
+
+## Question 5
+
+
+
+**Question**: Are there any regions that are seeing more delays? 
+
+
+
+**Answer**: Yes, West region is seeing most delays among all the regions. The number of flights delayed are 2420 with an average delay of 62 minutes. Mid Atlantic has the least delayed flights i.e. 14 flights. In terms of average delay time Mid West has the largest mean of around 87 minutes.
+
+
+
+```{r}
+flights_df_region <- flights_df %>% filter(arrival_delay >= 15) %>%
+                    group_by(dest_airport_region) %>%
+                    summarise(mean_delay = mean(arrival_delay),
+                              median_dealy = median(arrival_delay),
+                              count_delay = n())
+flights_df_region
+
+ggplot(flights_df_region,aes(x=dest_airport_region,y=count_delay,fill = dest_airport_region))+
+  geom_col()
+
+```
+
+
+## Question 6
+
+
+
+**Question**: Is there any specific time of the day that seems to be busiest causing traffic jam at the airport? 
+
+
+**Answer**: From the data it can be analysed that large number of flights are scheduled between 17:00 to 18:00. These can be the reason behind delayed departure at Dulles Airport as more flights are departing at the same time causing traffic jam causing delayed departure.
+
+
+
+
+```{r}
+
+ggplot(flights_df, aes( x = dep_time)) +
+  geom_histogram( bins = 20, fill = "blue")
+
+
+
+```
+
+
+## Question 7
+
+
+
+**Question**: Is taxi_out time one of the reasons for delayed departure from Dulles Airport? Do certain airlines or time of year lead to greater taxi out times (i.e. traffic jams on the runways)?
+
+
+**Answer**: Taxi-out is not the reason as only two months have large number of delayed flights indicating that there is very less correlation between the two variables. Flights delayed due to taxi-out are more during July and June with average taxi-out time of 31 and 34 minutes with 583 and 553 flights delayed during these months.
+
+
+
+
+```{r}
+flights_taxiout_avg <- flights_df %>% 
+                  summarise(avg_taxi_out = mean(taxi_out),
+                            avg_departure_delay = mean(dep_delay))
+flights_taxiout_avg
+
+flights_df_taxi_out <- flights_df %>% filter( taxi_out > 16.94) %>%
+                      group_by(airline)%>%
+                      summarise(avg_taxi_out = mean(taxi_out),
+                      avg_departure_delay = mean(dep_delay),
+                      No.of_flights_delayed = n())
+Flights_delayed_percentage <- (flights_df_taxi_out$No.of_flights_delayed/total_flights_df$total_flights)*100
+flights_df_taxi_out <- mutate(flights_df_taxi_out,Flights_delayed_percentage)
+flights_df_taxi_out
+
+flights_delays_taxiout_month <- flights_df%>%filter(taxi_out > 16.94,dep_delay>0) %>%
+                  group_by(month)  %>%
+                  summarise(delayed_flight = n(),avg_taxi_out = mean(taxi_out))
+flights_delays_taxiout_month
+
+
+
+```
+
+
+
+## Question 8
+
+
+
+**Question**: Are there any specific destinations that have more delays?
+
+
+
+**Answer**: Los Angeles has more delayed flights with 730 flights delayed. But the average delayed time is comparatively less than others which is 56 minutes. San Francisco being the second highest with 709 flights delayed in total and average  delay time is around 62 minutes.
+
+
+```{r}
+flights_delay_dest_airport <- flights_df%>%filter(arrival_delay>=15) %>%
+                              group_by(dest_airport_name)%>%
+                              summarise(delayed_flights = n(),
+                                        avg_delay = mean(arrival_delay))
+flights_delay_dest_airport %>% arrange(desc(delayed_flights))
+
+
+
+```
+
+
+# Summary of Results
+
+Write an executive summary of your overall findings and recommendations to the executives at Dulles Airport. Think of this section as your closing remarks of a presentation, where you summarize your key findings and make recommendations on flight operations and strategies for minimizing flight delays.
+
+Your executive summary must be written in a [professional tone](https://www.universalclass.com/articles/writing/business-writing/appropriate-tone-in-business-communications.htm), with minimal grammatical errors, and should include the following
+sections:
+
+1.  An introduction where you explain the business problem and goals of your data analysis
+
+    -   What problem(s) is this company trying to solve? Why are they important
+        to their future success?
+
+    -   What was the goal of your analysis? What questions were you 
+        trying to answer and why do they matter?
+
+
+2.  Highlights and key findings from your Exploratory Data Analysis section
+
+    -   What were the interesting findings from your analysis and
+        **why are they important for the business**?
+
+    -   This section is meant to **establish the need for your recommendations** 
+        in the following section
+        
+
+3.  Your recommendations to the company
+
+    -   Each recommendation must be supported by your data analysis results
+
+    -   You must clearly explain **why** you are making each recommendation and which results 
+        from your data analysis support this recommendation
+
+    -   You must also describe the potential business impact of your recommendation:
+
+        -   Why is this a good recommendation?
+
+        -   What benefits will the business achieve?
+      
+
+
+## Executive Summary
+
+Please write your executive summary below. If you prefer, you can type your summary in a text editor, such as Microsoft Word, and paste your final text here.
+
+1. Introduction.
+The business problem is to analyze the flights data of all the outbound flights from Dulles International Airport operations and services and make recommendations which will help them to provide better service to the customers by making strategic decisions to reduce the delays is the flights.
+
+The goal here is to draw insights and discover factors that are causing delays in the flight’s departure at Dulles Airport as well as delays in arrival at the destination airport. 
+
+
+2. Highlights and Key findings.
+From the analysis it is observed that most the delayed flights are late because of delayed departure form the Dulles airport. Also, we see a linear relationship between departure delay and arrival delay. Moreover, United airlines has a greater number of delayed flights but united has more flights operating so in terms of arrival delay rate Frontier has more flights delayed overall. 
+
+It can be inferred from the data that huge number of flights are scheduled to depart between 17:00 to 18:00 which is causing traffic jam at the airport eventually leading to delayed departure. Finding show that Los Angeles and San Francisco are the two destinations with highest number of delayed flights at the destination airport. Also, analysis show that West regions are more prone to arrival delays and Mid-Atlantic with least arrival delays. 
+
+In terms of months June and July are found to have more arrival delays. Here weather might be one the reason for the delays. Thursdays and Mondays are seen to have more flights delays this might be because of weekend as people tend to travel during weekends. 
+Moreover, taxi-out does not seem to have significant impact on the departure delay and arrival delay. Whereas June and July have more taxi-out delays, again this might be because of weather as June and July are prone to rains which affect the flights taxi. 
+
+
+3. Recommendations.
+First, I would like to recommend the organization that they evenly distribute the departure flights. These would reduce the traffic at the airport and allow flights to smoothly taxi to the runway avoiding departure delays. These can be supported by the analysis done in question 6.
+
+Second, I would like to make my recommendation to United and Frontier airlines. These airlines should take more efforts in the operations and services at the airport as boarding the plane on the schedule time is also important factor, crew and technical services can do better and so on. These help them gain more customer satisfaction and eventually increase their profits. The findings can be seen in questions 2. 
+
+Last, I would like to recommend the authorities at the Los Angeles and San Francisco to improve the operations and services as it might be that due to poor air traffic control the flights have to wait to get the clearance to land resulting in delayed arrival time. Other factors might be improper taxi-in management, flight kept waiting for too long for clearance and so on. 
+
+
+
+
+
+
+
+
+
+
+
+
+
